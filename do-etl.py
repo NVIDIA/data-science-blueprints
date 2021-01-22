@@ -54,7 +54,7 @@ if __name__ == '__main__':
         output_mode = args.output_mode,
         output_kind = args.output_kind,
         input_kind = args.input_kind,
-        output_file = "%s%s" % (args.output_prefix, args.output_file)
+        output_file = args.output_file
     )
 
     from churn.etl import read_df

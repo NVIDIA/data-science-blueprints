@@ -313,7 +313,7 @@ def write_df(df, name):
     
     name = "%s.%s" % (name, output_kind)
     if output_prefix != "":
-        name = "%s-%s" % (output_prefix, name)
+        name = "%s%s" % (output_prefix, name)
     kwargs = {}
     if output_kind == "csv":
         kwargs["header"] = True

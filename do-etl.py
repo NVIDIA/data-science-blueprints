@@ -125,13 +125,14 @@ if __name__ == '__main__':
     import timeit
     
     output_file = churn.etl.options['output_file']
+    output_kind = churn.etl.options['output_kind']
     output_prefix = churn.etl.options['output_prefix']
 
     elapsed_time = timeit.timeit(lambda: write_df(wide_data, output_file), number=1)
 
     print("completed ETL pipeline in %f seconds" % elapsed_time)
 
-    records = session.read.parquet(output_prefix + output_file).count()
+    records = session.read.parquet(output_prefix + output_file + "." + output_kind).count()
 
     first_line = 'Generated %d records in %f seconds; configuration follows:\n\n' % (records, elapsed_time)
     print(first_line)

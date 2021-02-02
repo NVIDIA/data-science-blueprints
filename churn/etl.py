@@ -157,7 +157,7 @@ def resolve_dependent_column(
     null_parent_val="No internet service",
 ):
     return (
-        F.when(df[parent_col] == "No", null_parent_val)
+        F.when((df[parent_col] == "No") | (df[parent_col].isNull()), null_parent_val)
         .otherwise(F.when(df[col].isNull(), null_val).otherwise(df[col]))
         .alias(col)
     )

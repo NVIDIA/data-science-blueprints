@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     elapsed_time = timeit.timeit(lambda: write_df(wide_data, output_file), number=1)
 
-    print("completed ETL pipeline in %f seconds" % elapsed_time)
+    print("completed ETL pipeline (version %s) in %f seconds" % (churn.etl.ETL_VERSION, elapsed_time))
 
     records = session.read.parquet(output_prefix + output_file + "." + output_kind).count()
 

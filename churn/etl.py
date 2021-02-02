@@ -72,7 +72,7 @@ def join_billing_data(billing_events_df):
     churned = customers.join(
         terminations, customers.customerID == terminations.Churn, how="leftouter"
     ).select(
-        "customerID", F.when(F.col("Churn").isNull(), "No").otherwise("Yes").alias("Churn")
+        "customerID", F.when(F.col("Churn").isNull(), F.lit(False)).otherwise(F.lit(True)).alias("Churn")
     )
 
     customer_charges = customers.join(
@@ -254,8 +254,8 @@ def process_account_meta(account_meta_df):
 
     customer_account_meta = account_meta_df.select(
         "customerID",
-        F.when(F.col("now") >= F.add_months(F.col("dateOfBirth"), 65 * 12), "Yes")
-        .otherwise("No")
+        F.when(F.col("now") >= F.add_months(F.col("dateOfBirth"), 65 * 12), F.lit(True))
+        .otherwise(F.lit(False))
         .alias("SeniorCitizen"),
         "Partner",
         "Dependents",

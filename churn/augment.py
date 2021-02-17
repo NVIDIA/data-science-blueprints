@@ -10,6 +10,54 @@ options = defaultdict(lambda: None)
 
 now = datetime.datetime.now(datetime.timezone.utc)
 
+session = None
+
+def _register_session(s):
+    global session
+    session = s
+
+def _get_uniques(ct):
+    global session
+    table_names = set([table.name for table in session.catalog.listTables()])
+
+    if ("uniques_%d" % ct) in table_names:
+        return session.table("uniques_%d" % ct)
+    else:
+        def str_part(seed=0x5CA1AB1E):
+            "generate the string part of a unique ID"
+            import random
+
+            r = random.Random(seed)
+            from base64 import b64encode
+
+            while True:
+                yield "%s" % b64encode(r.getrandbits(48).to_bytes(6, "big"), b"@_").decode(
+                    "utf-8"
+                )
+        
+        sp = str_part()
+        
+        uniques = (
+            session.createDataFrame(
+                schema=StructType([StructField("u_value", StringType())]),
+                data=[dict(u_value=next(sp)) for _ in range(ct * 2)],
+            )
+            .distinct()
+            .orderBy("u_value")
+            .limit(ct)
+        ).cache()
+
+        uc = uniques.count()
+        if uc != ct:
+            print(
+                "warning:  got some rng collision and have %d instead of %d duplicates"
+                % (uc, ct)
+            )
+        
+        uniques.createOrReplaceTempView("uniques_%d" % ct)
+
+        return uniques
+        
 
 def register_options(**kwargs):
     global options
@@ -17,6 +65,8 @@ def register_options(**kwargs):
         options[k] = v
 
 def load_supplied_data(session, input_file):
+    _register_session(session)
+
     fields = [
         "customerID",
         "gender",
@@ -58,37 +108,9 @@ def load_supplied_data(session, input_file):
     return df
 
 def replicate_df(df, duplicates):
-    def str_part(seed=0x5CA1AB1E):
-        "generate the string part of a unique ID"
-        import random
-
-        r = random.Random(seed)
-        from base64 import b64encode
-
-        while True:
-            yield "%s" % b64encode(r.getrandbits(48).to_bytes(6, "big"), b"@_").decode(
-                "utf-8"
-            )
 
     if duplicates > 1:
-        sp = str_part()
-        session = df.sql_ctx.sparkSession
-
-        uniques = (
-            session.createDataFrame(
-                schema=StructType([StructField("u_value", StringType())]),
-                data=[dict(u_value=next(sp)) for _ in range(duplicates * 2)],
-            )
-            .distinct()
-            .limit(duplicates)
-        )
-
-        uc = uniques.count()
-        if uc != duplicates:
-            print(
-                "warning:  got some rng collision and have %d instead of %d duplicates"
-                % (uc, duplicates)
-            )
+        uniques = _get_uniques(duplicates)
 
         df = (
             df.crossJoin(uniques.distinct())

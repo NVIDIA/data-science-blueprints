@@ -46,6 +46,7 @@ def read_df(session, fn):
 
 def find_customers(billing_events_df):
     customers = billing_events_df.select("customerID").distinct()
+    customers.cache()
     customers.createOrReplaceTempView("customers")
     return customers
 
@@ -56,7 +57,7 @@ def customers():
 def join_billing_data(billing_events_df):
     _register_session(billing_events_df.sql_ctx.sparkSession)
 
-    billing_events = billing_events_df.withColumn("value", billing_events_df.value.cast("float"))
+    billing_events = billing_events_df.withColumn("value", billing_events_df.value)
 
     customers = find_customers(billing_events)
 
@@ -299,8 +300,8 @@ def join_wide_table(customer_billing, customer_phone_features, customer_internet
         "Contract",
         "PaperlessBilling",
         "PaymentMethod",
-        "MonthlyCharges",
-        "TotalCharges",
+        F.col("MonthlyCharges").cast("float").alias("MonthlyCharges"),
+        F.col("TotalCharges").cast("float").alias("TotalCharges"),
         "Churn",
     )
 

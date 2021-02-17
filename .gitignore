@@ -1,2 +1,5 @@
 *.parquet
 local-*
+.ipynb_checkpoints
+.vscode
+Pipfile.lock

@@ -63,7 +63,7 @@ def unique_values(df, cols):
         *[F.array_sort(F.collect_set(F.col(c))).alias(c) for c in cols]
     ).drop("drop_me").cache()
     
-    result = reduce(lambda l, r: l.unionAll(r), [counts.select(F.lit(c).alias("field"), F.col(c).alias("approx_count")) for c in counts.columns]).collect()
+    result = reduce(lambda l, r: l.unionAll(r), [counts.select(F.lit(c).alias("field"), F.col(c).alias("unique_vals")) for c in counts.columns]).collect()
     counts.unpersist()
     
     return dict([(r[0],r[1]) for r in result])

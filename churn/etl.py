@@ -269,6 +269,10 @@ def process_account_meta(account_meta_df):
     _register_views(locals(), "customer_account_meta")
     return customer_account_meta
 
+def forcefloat(c):
+    return F.col(c).cast("float").alias(c)
+
+
 def join_wide_table(customer_billing, customer_phone_features, customer_internet_features, customer_account_features, customer_account_meta):
 
     wide_data = chained_join(
@@ -300,8 +304,8 @@ def join_wide_table(customer_billing, customer_phone_features, customer_internet
         "Contract",
         "PaperlessBilling",
         "PaymentMethod",
-        F.col("MonthlyCharges").cast("float").alias("MonthlyCharges"),
-        F.col("TotalCharges").cast("float").alias("TotalCharges"),
+        forcefloat("MonthlyCharges"),
+        forcefloat("TotalCharges"),
         "Churn",
     )
 

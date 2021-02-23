@@ -85,41 +85,9 @@ if __name__ == '__main__':
     from churn.etl import process_account_meta
     customer_account_meta = process_account_meta(account_meta)
 
-    from churn.etl import chained_join
+    from churn.etl import join_wide_table
 
-    wide_data = chained_join(
-        "customerID",
-        customers,
-        [
-            customer_billing,
-            customer_phone_features,
-            customer_internet_features,
-            customer_account_features,
-            customer_account_meta
-        ]
-    ).select(
-        "customerID", 
-        "gender", 
-        "SeniorCitizen", 
-        "Partner", 
-        "Dependents", 
-        "tenure", 
-        "PhoneService", 
-        "MultipleLines", 
-        "InternetService", 
-        "OnlineSecurity", 
-        "OnlineBackup", 
-        "DeviceProtection", 
-        "TechSupport", 
-        "StreamingTV", 
-        "StreamingMovies", 
-        "Contract", 
-        "PaperlessBilling", 
-        "PaymentMethod", 
-        "MonthlyCharges", 
-        "TotalCharges", 
-        "Churn"
-    )
+    wide_data = join_wide_table(customer_billing, customer_phone_features, customer_internet_features, customer_account_features, customer_account_meta)
 
     from churn.etl import write_df
     import timeit

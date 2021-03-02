@@ -10,6 +10,9 @@ options = defaultdict(lambda: None)
 
 now = datetime.datetime.now(datetime.timezone.utc)
 
+AUGMENT_VERSION = "0.4"
+AUGMENT_CUSTOMER_TAG = "0004"
+
 session = None
 currencyType = None
 
@@ -51,9 +54,9 @@ def _get_uniques(ct):
             from base64 import b64encode
 
             while True:
-                yield "%s" % b64encode(r.getrandbits(72).to_bytes(9, "big"), b"@_").decode(
+                yield "%s-%s" % (b64encode(r.getrandbits(72).to_bytes(9, "big"), b"@_").decode(
                     "utf-8"
-                )
+                ), AUGMENT_CUSTOMER_TAG)
         
         sp = str_part()
         

@@ -30,6 +30,7 @@ parser.add_argument('--output-prefix', help='text to prepend to every output fil
 parser.add_argument('--output-kind', help='output Spark data source type for the result (default: parquet)', default=default_output_kind)
 parser.add_argument('--input-kind', help='Spark data source type for the input (default: parquet)', default=default_input_kind)
 parser.add_argument('--report-file', help='location in which to store an output report', default='report.txt')
+parser.add_argument('--log-level', help='set log level (default: OFF)', default="OFF")
 
 if __name__ == '__main__':
     import pyspark
@@ -42,6 +43,8 @@ if __name__ == '__main__':
     session = pyspark.sql.SparkSession.builder \
         .appName(app_name) \
         .getOrCreate()
+
+    session.sparkContext.setLogLevel(args.log_level)
 
     session
 

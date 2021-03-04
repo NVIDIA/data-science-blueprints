@@ -19,6 +19,7 @@ parser.add_argument('--output-kind', help='output Spark data source type for the
 parser.add_argument('--dup-times', help='scale factor for augmented results (default: 100)', default=default_dup_times, type=int)
 parser.add_argument('--use-decimal', help='use DecimalType for currencies (default: True)', default=True, type=bool)
 parser.add_argument('--decimal-precision', help='set currency precision (default: 8; minimum: 6)', default=8, type=int)
+parser.add_argument('--log-level', help='set log level (default: OFF)', default="OFF")
 
 if __name__ == '__main__':
     import pyspark
@@ -41,7 +42,9 @@ if __name__ == '__main__':
     session = pyspark.sql.SparkSession.builder.\
         appName(churn.augment.options['app_name']).\
         getOrCreate()
-    
+
+    session.sparkContext.setLogLevel(args.log_level)
+
     from churn.augment import load_supplied_data
 
     df = load_supplied_data(session, args.input_file)

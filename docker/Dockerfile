@@ -1,0 +1,17 @@
+FROM nvcr.io/nvidia/cuda:11.0-base-ubuntu20.04
+
+RUN apt-get update && apt-get install -y openjdk-8-jre-headless git python3 python3-pip pipenv
+
+WORKDIR /workspace
+
+RUN git clone -b v0.4 https://github.com/willb/telco-churn-augmentation .
+
+RUN grep -v altair < Pipfile > Pipfile.tmp && mv Pipfile.tmp Pipfile
+
+RUN pipenv install
+
+COPY start.sh /workspace
+
+RUN chmod 755 /workspace/start.sh
+
+CMD ["./start.sh"]

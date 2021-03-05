@@ -7,7 +7,7 @@ ENV LANG=C.UTF-8
 
 WORKDIR /workspace
 
-RUN git clone -b v0.4-branch https://github.com/willb/telco-churn-augmentation .
+RUN git clone -b container-test https://github.com/willb/telco-churn-augmentation .
 
 RUN grep -v altair < Pipfile > Pipfile.tmp && mv Pipfile.tmp Pipfile
 

@@ -10,8 +10,8 @@ options = defaultdict(lambda: None)
 
 now = datetime.datetime.now(datetime.timezone.utc)
 
-AUGMENT_VERSION = "0.4"
-AUGMENT_CUSTOMER_TAG = "0004"
+AUGMENT_VERSION = "0.5"
+AUGMENT_CUSTOMER_TAG = "0005"
 
 session = None
 currencyType = None
@@ -168,39 +168,62 @@ def examine_categoricals(df, columns=None):
 def billing_events(df):
     import datetime
 
+    MAX_MONTH = 72
+
+    def get_last_month(col):
+        h = F.abs(F.xxhash64(col))
+        h1 = (h.bitwiseAND(0xff)) % (MAX_MONTH // 2)
+        h2 = (F.shiftRight(h, 8).bitwiseAND(0xff)) % (MAX_MONTH // 3)
+        h3 = (F.shiftRight(h, 16).bitwiseAND(0xff)) % (MAX_MONTH // 5)
+        h4 = (F.shiftRight(h, 24).bitwiseAND(0xff)) % (MAX_MONTH // 7)
+        h5 = (F.shiftRight(h, 32).bitwiseAND(0xff)) % (MAX_MONTH // 11)
+        return -(h1 + h2 + h3 + h4 + h5)
+
     w = pyspark.sql.Window.orderBy(F.lit("")).partitionBy(df.customerID)
 
+    last_months = df.select(
+        df.customerID,
+        F.when(
+            df.Churn == "Yes", get_last_month(df.customerID)
+            ).otherwise(
+                0
+            ).alias("last_month")
+    )
+
     charges = (
-        df.select(
+        df.join(last_months, "customerID").select(
             df.customerID,
             F.lit("Charge").alias("kind"),
             F.explode(
                 F.array_repeat((df.TotalCharges / df.tenure).cast(get_currency_type()), df.tenure.cast("int"))
             ).alias("value"),
+            F.col("last_month")
         )
         .withColumn("now", F.lit(now))
-        .withColumn("month_number", -F.row_number().over(w))
+        .withColumn("month_number", -(F.row_number().over(w) + F.col("last_month")))
         .withColumn("date", F.expr("add_months(now, month_number)"))
-        .drop("now", "month_number")
+        .drop("now", "month_number", "last_month")
     )
 
     serviceStarts = (
-        df.select(
+        df.join(last_months, "customerID").select(
             df.customerID,
             F.lit("AccountCreation").alias("kind"),
             F.lit(0.0).cast(get_currency_type()).alias("value"),
             F.lit(now).alias("now"),
-            (-df.tenure - 1).alias("month_number"),
+            (-df.tenure - 1 + F.col("last_month")).alias("month_number"),
         )
         .withColumn("date", F.expr("add_months(now, month_number)"))
         .drop("now", "month_number")
     )
 
-    serviceTerminations = df.where(df.Churn == "Yes").select(
+    serviceTerminations = df.join(last_months, "customerID").where(
+        df.Churn == "Yes"
+    ).withColumn("now", F.lit(now)).select(
         df.customerID,
         F.lit("AccountTermination").alias("kind"),
         F.lit(0.0).cast(get_currency_type()).alias("value"),
-        F.add_months(F.lit(now), 0).alias("date"),
+        F.expr("add_months(now, last_month)").alias("date")
     )
 
     billingEvents = charges.union(serviceStarts).union(serviceTerminations).orderBy("date").withColumn("month", F.substring("date", 0, 7))

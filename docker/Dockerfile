@@ -4,7 +4,7 @@ RUN apt-get update && apt-get install -y openjdk-8-jre-headless git python3 pyth
 
 WORKDIR /workspace
 
-RUN git clone -b container-test https://github.com/willb/telco-churn-augmentation .
+RUN git clone -b analytics-test https://github.com/willb/telco-churn-augmentation .
 
 RUN grep -v altair < Pipfile > Pipfile.tmp && mv Pipfile.tmp Pipfile
 

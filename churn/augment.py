@@ -181,23 +181,14 @@ def billing_events(df):
 
     w = pyspark.sql.Window.orderBy(F.lit("")).partitionBy(df.customerID)
 
-    last_months = df.select(
-        df.customerID,
-        F.when(
-            df.Churn == "Yes", get_last_month(df.customerID)
-            ).otherwise(
-                0
-            ).alias("last_month")
-    )
-
     charges = (
-        df.join(last_months, "customerID").select(
+        df.select(
             df.customerID,
             F.lit("Charge").alias("kind"),
             F.explode(
                 F.array_repeat((df.TotalCharges / df.tenure).cast(get_currency_type()), df.tenure.cast("int"))
             ).alias("value"),
-            F.col("last_month")
+            F.when(df.Churn == "Yes", get_last_month(df.customerID)).otherwise(0).alias("last_month")
         )
         .withColumn("now", F.lit(now))
         .withColumn("month_number", -(F.row_number().over(w) + F.col("last_month")))
@@ -206,7 +197,7 @@ def billing_events(df):
     )
 
     serviceStarts = (
-        df.join(last_months, "customerID").select(
+        df.withColumn("last_month", F.when(df.Churn == "Yes", get_last_month(df.customerID)).otherwise(0)).select(
             df.customerID,
             F.lit("AccountCreation").alias("kind"),
             F.lit(0.0).cast(get_currency_type()).alias("value"),
@@ -217,7 +208,7 @@ def billing_events(df):
         .drop("now", "month_number")
     )
 
-    serviceTerminations = df.join(last_months, "customerID").where(
+    serviceTerminations = df.withColumn("last_month", F.when(df.Churn == "Yes", get_last_month(df.customerID)).otherwise(0)).where(
         df.Churn == "Yes"
     ).withColumn("now", F.lit(now)).select(
         df.customerID,

@@ -108,17 +108,17 @@ if __name__ == '__main__':
 
     federation_time = timeit.timeit(lambda: write_df(wide_data, output_file), number=1)
 
-    print("completed federation pipeline (version %s) in %f seconds" % (churn.etl.ETL_VERSION, federation_time))
-
     records = session.read.parquet(output_prefix + output_file + "." + output_kind)
     record_count = records.count()
     record_nonnull_count = records.dropna().count()
 
-    analysis_time = timeit.timeit(lambda: churn.eda.output_reports(records, args.summary_prefix), number=1)
+    analysis_time = timeit.timeit(lambda: churn.eda.output_reports(records, billing_events, args.summary_prefix), number=1)
 
-    first_line = 'Total time was %f to generate and process %d records\n' % (analysis_time + federation_time, record_count)
-    first_line += 'Analytics and reporting took %f seconds\n' % analysis_time
-    first_line += 'Federation took %f seconds; configuration follows:\n\n' % federation_time
+    first_line = "Completed analytics pipeline (version %s)\n" % churn.etl.ETL_VERSION
+
+    first_line += 'Total time was %.02f to generate and process %d records\n' % (analysis_time + federation_time, record_count)
+    first_line += 'Analytics and reporting took %.02f seconds\n' % analysis_time
+    first_line += 'Federation took %.02f seconds; configuration follows:\n\n' % federation_time
     print(first_line)
 
     if record_nonnull_count != record_count:

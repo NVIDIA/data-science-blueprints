@@ -83,6 +83,12 @@ def gen_summary(df):
     cardinalities = approx_cardinalities(df, string_cols)
     uniques = likely_unique(cardinalities)
     categoricals = unique_values(df, likely_categoricals(cardinalities))
+
+    aggregates = {}
+    for span in [2,3,4,6,12]:
+        # we currently don't do anything interesting with these
+        df.cube("Churn", F.ceil(df.tenure / span).alias("quarters"), "gender", "Partner", "SeniorCitizen", "Contract", "PaperlessBilling", "PaymentMethod", F.ceil(F.log2(F.col("MonthlyCharges"))*10)).count().count()
+        aggregates["churnValues-%d-span" % span] = df.rollup("Churn", F.ceil(df.tenure / span).alias("quarters"), "SeniorCitizen", "Contract", "PaperlessBilling", "PaymentMethod", F.ceil(F.log2(F.col("MonthlyCharges"))*10)).agg({"TotalCharges" : "sum"}).toPandas().to_json()
     
     encoding_struct = {
         "categorical" : categoricals,
@@ -90,21 +96,25 @@ def gen_summary(df):
         "unique": uniques
     }
     
-    
-
     summary["schema"] = df.schema.jsonValue()
     summary["ecdfs"] = approx_ecdf(df, numeric_cols)
     summary["true_percentage"] = percent_true(df, boolean_cols)
     summary["encoding"] = encoding_struct
-
+    summary["distinct_customers"] = df.select(df.customerID).distinct().count()
     
     return summary
 
+def losses_by_month(be):
+    customer_lifetime_values = be.groupBy("customerID").sum("value").alias("value")
+    return be.where(be.kind == "AccountTermination").join(customer_lifetime_values, "customerID").groupBy("month").sum("value").alias("value").sort("month").toPandas().to_json()
 
-def output_reports(df, report_prefix=""):
+def output_reports(df, be=None, report_prefix=""):
     import json
 
     summary = gen_summary(df)
+
+    if be is not None:
+        summary["losses_by_month"] = losses_by_month(be)
 
     with open("%ssummary.json" % report_prefix, "w") as sf:
         json.dump(summary, sf)

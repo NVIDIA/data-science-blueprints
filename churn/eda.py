@@ -1,6 +1,8 @@
 from pyspark.sql import types as T
 from pyspark.sql import functions as F
 
+eda_options = { 'use_array_ops' : False }
+
 def isnumeric(data_type):
     numeric_types = [T.ByteType, T.ShortType, T.IntegerType, T.LongType, T.FloatType, T.DoubleType, T.DecimalType]
     return any([isinstance(data_type, t) for t in numeric_types])
@@ -11,20 +13,14 @@ def percent_true(df, cols):
     return {col : df.where(F.col(col) == True).count() / denominator for col in cols}
 
 
-def approx_cardinalities(df, cols):
+def cardinalities(df, cols):
     from functools import reduce
     
-    counts = df.groupBy(
-        F.lit(True).alias("drop_me")
-    ).agg(
-        F.count('*').alias("total"),
-        *[F.approx_count_distinct(F.col(c)).alias(c) for c in cols]
-    ).drop("drop_me").cache()
-    
-    result = reduce(lambda l, r: l.unionAll(r), [counts.select(F.lit(c).alias("field"), F.col(c).alias("approx_count")) for c in counts.columns]).collect()
-    counts.unpersist()
-    
-    return dict([(r[0],r[1]) for r in result])
+    counts = df.agg(
+        F.struct(*[F.countDistinct(F.col(c)).alias(c) for c in cols] + [F.count(F.col(cols[0])).alias('total')]).alias("results")
+    ).select("results").collect()[0][0].asDict()
+    counts.update({'total' : df.count()})
+    return counts
 
 
 def likely_unique(counts):
@@ -37,8 +33,14 @@ def likely_categoricals(counts):
     return [k for (k, v) in counts.items() if v < total * 0.15 or v < 128]
 
 def unique_values(df, cols):
+    if eda_options['use_array_ops']:
+        return unique_values_array(df, cols)
+    else:   
+        return unique_values_driver(df, cols)
+
+def unique_values_array(df, cols):
     from functools import reduce
-    
+ 
     counts = df.groupBy(
         F.lit(True).alias("drop_me")
     ).agg(
@@ -46,10 +48,12 @@ def unique_values(df, cols):
     ).drop("drop_me").cache()
     
     result = reduce(lambda l, r: l.unionAll(r), [counts.select(F.lit(c).alias("field"), F.col(c).alias("unique_vals")) for c in counts.columns]).collect()
-    counts.unpersist()
     
     return dict([(r[0],r[1]) for r in result])
 
+
+def unique_values_driver(df, cols):
+    return { col : [v[0] for v in df.select(F.col(col).alias('value')).distinct().orderBy(F.col('value')).collect()] for col in cols}
 
 def approx_ecdf(df, cols):
     from functools import reduce
@@ -62,7 +66,7 @@ def approx_ecdf(df, cols):
     return {c: dict(zip(quantiles, vs)) for (c, vs) in result.items()}
 
 
-def gen_summary(df):
+def gen_summary(df, output_prefix=""):
     summary = {}
     
     string_cols = []
@@ -80,16 +84,16 @@ def gen_summary(df):
         else:
             other_cols.append(field.name)
     
-    cardinalities = approx_cardinalities(df, string_cols)
-    uniques = likely_unique(cardinalities)
-    categoricals = unique_values(df, likely_categoricals(cardinalities))
+    counts = cardinalities(df, string_cols)
+    uniques = likely_unique(counts)
+    categoricals = unique_values(df, likely_categoricals(counts))
 
-    aggregates = {}
     for span in [2,3,4,6,12]:
-        # we currently don't do anything interesting with these
-        df.cube("Churn", F.ceil(df.tenure / span).alias("quarters"), "gender", "Partner", "SeniorCitizen", "Contract", "PaperlessBilling", "PaymentMethod", F.ceil(F.log2(F.col("MonthlyCharges"))*10)).count().count()
-        aggregates["churnValues-%d-span" % span] = df.rollup("Churn", F.ceil(df.tenure / span).alias("quarters"), "SeniorCitizen", "Contract", "PaperlessBilling", "PaymentMethod", F.ceil(F.log2(F.col("MonthlyCharges"))*10)).agg({"TotalCharges" : "sum"}).toPandas().to_json()
-    
+        thecube = df.cube("Churn", F.ceil(df.tenure / span).alias("%d_month_spans" % span), "gender", "Partner", "SeniorCitizen", "Contract", "PaperlessBilling", "PaymentMethod", F.ceil(F.log2(F.col("MonthlyCharges"))*10).alias("log_charges")).count()
+        therollup = df.rollup("Churn", F.ceil(df.tenure / span).alias("%d_month_spans" % span), "SeniorCitizen", "Contract", "PaperlessBilling", "PaymentMethod", F.ceil(F.log2(F.col("MonthlyCharges"))*10).alias("log_charges")).agg(F.sum(F.col("TotalCharges")).alias("sum_charges"))
+        thecube.write.mode("overwrite").parquet("%scube-%d.parquet" % (output_prefix, span))
+        therollup.write.mode("overwrite").parquet("%srollup-%d.parquet" % (output_prefix, span))
+
     encoding_struct = {
         "categorical" : categoricals,
         "numeric" : numeric_cols + boolean_cols,
@@ -111,7 +115,7 @@ def losses_by_month(be):
 def output_reports(df, be=None, report_prefix=""):
     import json
 
-    summary = gen_summary(df)
+    summary = gen_summary(df, report_prefix)
 
     if be is not None:
         summary["losses_by_month"] = losses_by_month(be)

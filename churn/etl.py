@@ -254,13 +254,28 @@ def join_account_features(account_features_df):
     return customer_account_features
 
 
-def process_account_meta(account_meta_df):
+def process_account_meta(account_meta_df, usecal=None):
+    def is_senior_citizen(nowcol, dobcol):
+        if options['use_calendar_arithmetic']:
+            return F.when(
+                F.col("now") >= F.add_months(
+                    F.col("dateOfBirth"), 65 * 12
+                ), F.lit(True)
+            ).otherwise(F.lit(False))
+        else:
+            return (F.year(F.col(nowcol)) > (F.year(F.col(dobcol)) + 65)) | \
+                (F.year(F.col(nowcol)) == (F.year(F.col(dobcol)) + 65)) & \
+                (
+                    (F.month(F.col(nowcol)) < F.month(F.col(dobcol))) | \
+                    (
+                        (F.month(F.col(nowcol)) == F.month(F.col(dobcol))) & \
+                        (F.dayofmonth(F.col(nowcol)) <= F.dayofmonth(F.col(nowcol)))
+                    )
+                )
 
     customer_account_meta = account_meta_df.select(
         "customerID",
-        F.when(F.col("now") >= F.add_months(F.col("dateOfBirth"), 65 * 12), F.lit(True))
-        .otherwise(F.lit(False))
-        .alias("SeniorCitizen"),
+        is_senior_citizen("now", "dateOfBirth").alias("SeniorCitizen"),
         "Partner",
         "Dependents",
         "gender",
@@ -305,14 +320,42 @@ def join_wide_table(customer_billing, customer_phone_features, customer_internet
         "Contract",
         "PaperlessBilling",
         "PaymentMethod",
-        forcefloat("MonthlyCharges"),
-        forcefloat("TotalCharges"),
+        "MonthlyCharges",
+        "TotalCharges",
         "Churn",
     )
 
     return wide_data
 
     # In[ ]:
+
+def cast_and_coalesce_wide_data(wd):
+    if options["coalesce_output"] > 0:
+        wd = wd.coalesce(options["coalesce_output"])
+    
+    return wd.select(
+        "customerID",
+        "gender",
+        "SeniorCitizen",
+        "Partner",
+        "Dependents",
+        "tenure",
+        "PhoneService",
+        "MultipleLines",
+        "InternetService",
+        "OnlineSecurity",
+        "OnlineBackup",
+        "DeviceProtection",
+        "TechSupport",
+        "StreamingTV",
+        "StreamingMovies",
+        "Contract",
+        "PaperlessBilling",
+        "PaymentMethod",
+        forcefloat("MonthlyCharges"),
+        forcefloat("TotalCharges"),
+        "Churn",
+    )
 
 def write_df(df, name):
     output_kind = options["output_kind"]

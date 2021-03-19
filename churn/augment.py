@@ -10,8 +10,8 @@ options = defaultdict(lambda: None)
 
 now = datetime.datetime.now(datetime.timezone.utc)
 
-AUGMENT_VERSION = "0.6"
-AUGMENT_CUSTOMER_TAG = "0006"
+AUGMENT_VERSION = "0.7"
+AUGMENT_CUSTOMER_TAG = "0007"
 
 session = None
 currencyType = None
@@ -190,7 +190,7 @@ def billing_events(df):
             ).alias("value"),
             F.when(df.Churn == "Yes", get_last_month(df.customerID)).otherwise(0).alias("last_month")
         )
-        .withColumn("now", F.lit(now))
+        .withColumn("now", F.lit(now).cast("date"))
         .withColumn("month_number", -(F.row_number().over(w) + F.col("last_month")))
         .withColumn("date", F.expr("add_months(now, month_number)"))
         .drop("now", "month_number", "last_month")

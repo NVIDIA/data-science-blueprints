@@ -10,9 +10,8 @@ RUN grep -v altair < Pipfile > Pipfile.tmp && mv Pipfile.tmp Pipfile
 
 RUN pipenv install
 
-ADD https://repo1.maven.org/maven2/ai/rapids/cudf/0.18/cudf-0.18-cuda11.jar /workspace
-# ADD https://repo1.maven.org/maven2/com/nvidia/rapids-4-spark_2.12/0.3.0/rapids-4-spark_2.12-0.3.0.jar /workspace
-ADD https://oss.sonatype.org/content/repositories/staging/com/nvidia/rapids-4-spark_2.12/0.4.0/rapids-4-spark_2.12-0.4.0.jar /workspace
+ADD https://repo1.maven.org/maven2/ai/rapids/cudf/0.18.1/cudf-0.18.1-cuda11.jar /workspace
+ADD https://repo1.maven.org/maven2/com/nvidia/rapids-4-spark_2.12/0.4.0/rapids-4-spark_2.12-0.4.0.jar /workspace
 COPY start.sh /workspace
 
 RUN chmod 755 /workspace/start.sh

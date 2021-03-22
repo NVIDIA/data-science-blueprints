@@ -122,7 +122,14 @@ def load_supplied_data(session, input_file):
 
     df = session.read.csv(input_file, header=True, schema=schema)
     
+    source_count = df.count()
     df = df.dropna()
+    nn_count = df.count()
+
+    if source_count == nn_count:    
+        print("read %d records from source dataset with no nulls -- is this what you expect?" % source_count)
+    else:
+        print("read %d records from source dataset (%d non-null records)" % (source_count, nn_count))
     
     return df
 

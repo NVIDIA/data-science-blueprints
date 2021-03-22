@@ -10,7 +10,7 @@ from collections import defaultdict
 options = defaultdict(lambda: None)
 session = None
 
-ETL_VERSION = '0.6'
+ETL_VERSION = '0.7'
 
 def register_options(**kwargs):
     global options

@@ -80,12 +80,12 @@ def join_billing_data(billing_events_df):
     )
 
     customer_charges = customers.join(
-        counts_and_charges.where(F.col("kind") == "Charge"), "customerID"
+        counts_and_charges.where(F.col("kind") == "Charge"), "customerID", how="leftouter"
     ).select(
         "customerID",
         F.col("event_counts").alias("tenure"),
         F.col("total_charges").alias("TotalCharges"),
-    )
+    ).fillna({'tenure': 0, 'TotalCharges': 0.0})
 
     _register_views(locals(), "counts_and_charges", "terminations", "churned", "customer_charges")
  

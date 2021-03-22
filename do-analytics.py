@@ -6,6 +6,7 @@ from churn.etl import cast_and_coalesce_wide_data
 import os
 import sys
 import re
+import json
 
 app_name = "churn-etl"
 default_input_files = dict(
@@ -34,8 +35,9 @@ parser.add_argument('--summary-prefix', help='text to prepend to analytic report
 parser.add_argument('--report-file', help='location in which to store a performance report', default='report.txt')
 parser.add_argument('--log-level', help='set log level (default: OFF)', default="OFF")
 parser.add_argument('--coalesce-output', help='coalesce output to NUM partitions', default=0)
-parser.add_argument('--use-calendar-arithmetic', help='use add_months() function (default: False)', type=bool, default=False)
-
+parser.add_argument('--use-calendar-arithmetic', help='use add_months() function (default: False)', action='store_const', const=True, default=False)
+parser.add_argument('--skip-eda', help='skip analytic reporting; federate only (default: False)', action='store_const', const=True, default=False)
+parser.add_argument('--debug-nulls', help='print out records containing NULLs as JSON objects (default: False)', action='store_const', const=True, default=False)
 
 if __name__ == '__main__':
     import pyspark
@@ -118,12 +120,16 @@ if __name__ == '__main__':
     record_count = records.count()
     record_nonnull_count = records.dropna().count()
 
-    analysis_time = timeit.timeit(lambda: churn.eda.output_reports(records, billing_events, args.summary_prefix), number=1)
+    if not args.skip_eda:
+        analysis_time = timeit.timeit(lambda: churn.eda.output_reports(records, billing_events, args.summary_prefix), number=1)
 
     first_line = "Completed analytics pipeline (version %s)\n" % churn.etl.ETL_VERSION
 
-    first_line += 'Total time was %.02f to generate and process %d records\n' % (analysis_time + federation_time + coalesce_time, record_count)
-    first_line += 'Analytics and reporting took %.02f seconds\n' % analysis_time
+    if not args.skip_eda:
+        first_line += 'Total time was %.02f to generate and process %d records\n' % (analysis_time + federation_time + coalesce_time, record_count)
+        first_line += 'Analytics and reporting took %.02f seconds\n' % analysis_time
+    else:
+        first_line += 'We ran with --skip-eda; not reporting analytics time\n'
     first_line += 'Coalescing and casting data for reporting and ML took %.02f seconds\n' % coalesce_time
     first_line += 'Federation took %.02f seconds; configuration follows:\n\n' % federation_time
     print(first_line)
@@ -133,15 +139,19 @@ if __name__ == '__main__':
         null_percent = (float(nulls) / record_count) * 100
         print('ERROR: analytics job generated %d records with nulls (%.02f%% of total)' % (nulls, null_percent))
         failed = True
+        if args.debug_nulls:
+            for row in records.subtract(records.dropna()).collect():
+                print(json.dumps(row.asDict()))
 
     with open(args.report_file, "w") as report:
         report.write(first_line + "\n")
         for conf in session.sparkContext.getConf().getAll():
             report.write(str(conf) + "\n")
             print(conf)
-
+    
     session.stop()
 
     if failed:
-        sys.exit(1)
         print("Job failed (most likely due to nulls in output); check logs for lines beginning with ERROR")
+        sys.exit(1)
+    

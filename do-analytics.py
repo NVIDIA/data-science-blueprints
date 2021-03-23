@@ -34,7 +34,7 @@ parser.add_argument('--input-kind', help='Spark data source type for the input (
 parser.add_argument('--summary-prefix', help='text to prepend to analytic reports (e.g., "reports/"; default is empty)', default='')
 parser.add_argument('--report-file', help='location in which to store a performance report', default='report.txt')
 parser.add_argument('--log-level', help='set log level (default: OFF)', default="OFF")
-parser.add_argument('--coalesce-output', help='coalesce output to NUM partitions', default=0)
+parser.add_argument('--coalesce-output', help='coalesce output to NUM partitions', default=0, type=int)
 parser.add_argument('--use-calendar-arithmetic', help='use add_months() function (default: False)', action='store_const', const=True, default=False)
 parser.add_argument('--skip-eda', help='skip analytic reporting; federate only (default: False)', action='store_const', const=True, default=False)
 parser.add_argument('--debug-nulls', help='print out records containing NULLs as JSON objects (default: False)', action='store_const', const=True, default=False)

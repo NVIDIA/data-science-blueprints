@@ -17,7 +17,7 @@ To run these in cluster mode on Spark, you'll need to package up the [modules](c
 
 `zip archive.zip -r churn generate.py`
 
-Download the [RAPIDS Accelerator for Spark]](https://repo1.maven.org/maven2/com/nvidia/rapids-4-spark_2.12/21.06.0/rapids-4-spark_2.12-21.06.0.jar) and [RAPIDS cuDF](https://repo1.maven.org/maven2/ai/rapids/cudf/21.06.1/cudf-21.06.1-cuda11.jar) jars.
+Download the [RAPIDS Accelerator for Spark](https://repo1.maven.org/maven2/com/nvidia/rapids-4-spark_2.12/21.06.0/rapids-4-spark_2.12-21.06.0.jar) and [RAPIDS cuDF](https://repo1.maven.org/maven2/ai/rapids/cudf/21.06.1/cudf-21.06.1-cuda11.jar) jars.
 
 Once you have the files on your local machine you will find the following files in the telco-churn-augmentation directory:
 
@@ -31,7 +31,7 @@ This file contains a number of variables that need to be updated.
 * **NUM_EXECUTORS** - This should be set to 1/4 the amount of cores specified in TOTAL_CORES
 * **TOTAL_MEMORY** - This is the total amount of memory across all nodes within the cluster. Do not include the master node unless it is als a worker
 * **INPUT_PREFIX** - This is the path to the data that will be processed. This path is the path used for OUTPUT_PATH in the gen.env.sh
-* **OUTPUT_PATH** - This is the path where the results of the ETL/Analytics will be located **This path is what should be used for the INPUT_PATH variable for the gpu.env.sh and cpu.env.sh files.**
+* **OUTPUT_PATH** - This is the path where the results of the ETL/Analytics will be located _**This path is what should be used for the INPUT_PATH variable for the gpu.env.sh and cpu.env.sh files.**_
 
 ### generate.sh
 This script generates the dataset that will be processed by the CPU and GPU ETL/Analytics jobs below.

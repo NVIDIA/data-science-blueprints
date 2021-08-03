@@ -118,7 +118,7 @@ This will generate 100000 output records for every input record, or roughly 700 
 
 ## Tuning and configuration
 
-The most critical configuration parameter for good GPU performance on the ETL job is `spark.rapids.sql.variableFloatAgg.enabled` -- if it isn't set to true, all of the aggregations will run on CPU, requiring costly transfers from device to host memory.
+The most critical configuration parameter for good GPU performance on the ETL job is `spark.rapids.sql.variableFloatAgg.enabled` -- if it isn't set to true, all of the floating-point aggregations will run on CPU, requiring costly transfers from device to host memory.
 
 Here are the parameters I used when I tested on Dataproc:
 

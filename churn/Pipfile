@@ -1,0 +1,15 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+pyspark = "== 3.0.1"
+pymc3 = "*"
+arviz = "*"
+scipy = "*"
+numpy = "*"
+jupyter = "*"
+altair = "~= 4.1.0"

@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pyspark = "== 3.0.1"
+pyspark = "== 3.2.2"
 pymc3 = "*"
 arviz = "*"
 scipy = "*"

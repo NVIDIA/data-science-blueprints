@@ -1,4 +1,7 @@
-# telco-churn-augmentation
+# churn
+
+> [!IMPORTANT]
+> As of April 2026, this repository is no longer maintained.
 
 This repository shows a realistic ETL workflow based on synthetic normalized data.  It consists of two pieces:
 

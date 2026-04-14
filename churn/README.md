@@ -20,7 +20,7 @@ To run these in cluster mode on Spark, you'll need to package up the [modules](c
 
 `zip archive.zip -r churn generate.py`
 
-Download the [RAPIDS Accelerator for Spark](https://repo1.maven.org/maven2/com/nvidia/rapids-4-spark_2.12/21.06.0/rapids-4-spark_2.12-21.06.0.jar) and [RAPIDS cuDF](https://repo1.maven.org/maven2/ai/rapids/cudf/21.06.1/cudf-21.06.1-cuda11.jar) jars.
+Download the [RAPIDS Accelerator for Spark](https://nvidia.github.io/spark-rapids/docs/download.html).
 
 Once you have the files on your local machine you will find the following files in the telco-churn-augmentation directory:
 
@@ -43,7 +43,7 @@ This script generates the dataset that will be processed by the CPU and GPU ETL/
 This file contains a number of variables that need to be updated.
 * **SPARK_HOME** - This is the directory where spark is installed.
 * **SPARK_RAPIDS_DIR** - This is the directory where you have your rapids and cudf jars, assuming you have not copied them to $SPARK_HOME/jars
-* **SPARK_CUDF_JAR** - This is the full name of the RAPIDS cuDF jar that you want to use during the ETL/Analytics run
+* **SPARK_CUDF_JAR** - This is the full name of the RAPIDS cuDF jar that you want to use during the ETL/Analytics run (only necessary if testing versions of the RAPIDS Accelerator before 22.06.0)
 * **SPARK_RAPIDS_JAR** - This is the full name of the RAPIDS Accelarator for Spark jar that you want to use during the ETL/Analytics run
 * **MASTER** - This is the ip/name of your spark master server
 * **HDFS_MASTER** - This is the ip/name of the HDFS master server if you are using HDFS
@@ -94,45 +94,3 @@ gpu_etl.sh.txt.1623102500:Total time was 387.85 to generate and process 70320000
 ### Capture history server logs
 
 As defined in $SPARK_HOME/conf/spark-defaults.conf, spark.eventLog.dir is the directory in which Spark events are logged. Each application will create a subdirectory in this location. Capturing this data can be helpful in comparing jobs with one another or with other configurations.
-
-<!--
-There are also script versions of each job: `generate.py` and `do-etl.py`.  Each of these supports some command-line arguments and has online help.
-
-To run these in cluster mode on Spark, you'll need to package up the [modules](churn) that each script depends on, by creating a zip file:
-
-`zip archive.zip -r churn generate.py`
-
-Then you can pass `archive.zip` to your `--py-files` argument.
-
-Here's an example command-line to run the data generator on Google Cloud Dataproc:
-
-```
-gcloud dataproc jobs submit pyspark generate.py \
-  --py-files=archive.zip --cluster=$MYCLUSTER \
-  --project=$MYPROJECT --region=$MYREGION \
-  --properties spark.rapids.sql.enabled=False -- \
-  --input-file=gs://$MYBUCKET/raw.csv \
-  --output-prefix=gs://$MYBUCKET/generated-700m/ \
-  --dup-times=100000
-```
-
-This will generate 100000 output records for every input record, or roughly 700 million records.  Note that we have disabled the RAPIDS Spark Accelerator plugin; this may be necessary for the data generator.
--->
-
-## Tuning and configuration
-
-The most critical configuration parameter for good GPU performance on the ETL job is `spark.rapids.sql.variableFloatAgg.enabled` -- if it isn't set to true, all of the floating-point aggregations will run on CPU, requiring costly transfers from device to host memory.
-
-Here are the parameters I used when I tested on Dataproc:
-
-- `spark.rapids.memory.pinnedPool.size=2G`
-- `spark.sql.shuffle.partitions=16`
-- `spark.sql.files.maxPartitionBytes=4096MB`
-- `spark.rapids.sql.enabled=True`
-- `spark.executor.cores=2`
-- `spark.task.cpus=1`
-- `spark.rapids.sql.concurrentGpuTasks=2`
-- `spark.task.resource.gpu.amount=.5`
-- `spark.executor.instances=8`
-- `spark.rapids.sql.variableFloatAgg.enabled=True`
-- `spark.rapids.sql.explain=NOT_ON_GPU`

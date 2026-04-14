@@ -2,12 +2,12 @@ SPARK_HOME=/opt/spark/spark-3.0.2-bin-hadoop3.2
 PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
 
 # Create log files for each query that is run
-LOG_SECOND=`date +%s`
-LOGFILE="logs/$0.txt.$LOG_SECOND"
+LOG_SECOND=$(date +%s)
+export LOGFILE="logs/$0.txt.$LOG_SECOND"
 mkdir -p logs
 
 # This is the IP address of the master node for your spark cluster
-MASTER="spark://<SPARK_MASTER_IP>:7077"
+export MASTER="spark://<SPARK_MASTER_IP>:7077"
 HDFS_MASTER="<HDFS_MASTER_IP>"
 
 # Set this value to the total number of cores that you have across all
@@ -23,7 +23,7 @@ TOTAL_CORES=1024
 # we have found that 4 cores per executor performs well. 
 NUM_EXECUTORS=256   # 1/4 the number of cores in the cluster
 #
-NUM_EXECUTOR_CORES=$((${TOTAL_CORES}/${NUM_EXECUTORS}))
+export NUM_EXECUTOR_CORES=$((${TOTAL_CORES}/${NUM_EXECUTORS}))
 #
 # Set this to the total memory across all your worker nodes. e.g. 8 server
 # with 96GB of ram = 768
@@ -32,7 +32,7 @@ DRIVER_MEMORY=50    # unit: GB
 #
 # This takes the total memory and calculates the maximum amount of memory
 # per executor
-EXECUTOR_MEMORY=$(($((${TOTAL_MEMORY}-$((${DRIVER_MEMORY}*1000/1024))))/${NUM_EXECUTORS}))
+export EXECUTOR_MEMORY=$(($((${TOTAL_MEMORY}-$((${DRIVER_MEMORY}*1000/1024))))/${NUM_EXECUTORS}))
 
 # If you are going to use storage that supports S3, set your credential
 # here for use during the run
@@ -56,12 +56,12 @@ EXECUTOR_MEMORY=$(($((${TOTAL_MEMORY}-$((${DRIVER_MEMORY}*1000/1024))))/${NUM_EX
 #
 # Input prefix designates where the data to be processed is located
 # INPUT_PREFIX="s3a://data/churn-benchmark/10k/"
-INPUT_PREFIX="hdfs://$HDFS_MASTER:9000/data/churn-benchmark/10k/"
+export INPUT_PREFIX="hdfs://$HDFS_MASTER:9000/data/churn-benchmark/10k/"
 # INPUT_PREFIX="file:///data/churn-benchmark/10k/"
 #
 # Output prefix is where results from the queries are stored
 # OUTPUT_PREFIX="s3a://data/output/churn/10k/cpu/"
-OUTPUT_PREFIX="hdfs://$HDFS_MASTER:9000/data/output/churn/10k/cpu/"
+export OUTPUT_PREFIX="hdfs://$HDFS_MASTER:9000/data/output/churn/10k/cpu/"
 # OUTPUT_PREFIX="file:///data/output/churn/10k/cpu/"
 #
 
